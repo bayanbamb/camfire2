@@ -334,6 +334,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _returnItem(int id) async {
+    await _database.returnItem(id);
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;

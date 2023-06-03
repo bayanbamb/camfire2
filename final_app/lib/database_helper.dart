@@ -129,4 +129,13 @@ class DBHelper {
       whereArgs: [id],
     );
   }*/
+  Future<void> returnItem(int id) async {
+    final db = await database;
+    await db.update(
+      TABLENAME2,
+      {"rented": true},
+      where: "$COL11 = ?",
+      whereArgs: [id],
+    );
+  }
 }
