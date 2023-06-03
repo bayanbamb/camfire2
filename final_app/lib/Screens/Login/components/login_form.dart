@@ -84,7 +84,7 @@ class _LoginActivityState extends State<LoginForm> {
                       context,
                       MaterialPageRoute(
                           builder: (context) =>
-                              HomeScreen(loggedInUser: widget._loggedInUser)),
+                              EmptyScreen(loggedInUser: widget._loggedInUser)),
                     );
                   } else {
                     Fluttertoast.showToast(msg: "Wrong Account");

@@ -7,70 +7,215 @@ import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 
-/*class HomeScreen extends StatefulWidget {
+class EmptyScreen extends StatelessWidget {
+  final String loggedInUser;
+  final _database = DBHelper();
+  EmptyScreen({required this.loggedInUser});
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          Container(
+            height: 100.0,
+            decoration: BoxDecoration(
+              color: Color.fromARGB(255, 176, 206, 196),
+            ),
+            child: Container(
+              padding: EdgeInsets.only(top: 50.0),
+              height: 80.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              HomeScreen(loggedInUser: loggedInUser),
+                        ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.account_circle,
+                      size: 40.0,
+                      color: Colors.white,
+                    ),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0.0,
+                  ),
+                  SizedBox(width: 16.0),
+                  FloatingActionButton(
+                    onPressed: () {
+                      Navigator.popUntil(context, (route) => route.isFirst);
+                    },
+                    backgroundColor: Colors.transparent,
+                    elevation: 0.0,
+                    child: Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 30.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(13.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: defaultPadding),
+                  Expanded(
+                    child: FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _database.getItems2(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        }
+                        if (!snapshot.hasData) {
+                          return Center(child: CircularProgressIndicator());
+                        }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Item> items = [
-    Item(
-        name: 'Tent',
-        description: 'A waterproof 2-person tent',
-        price: 20,
-        image: 'assets/images/tent.jpg'),
-    Item(
-        name: 'Sleeping bag',
-        description: 'A warm sleeping bag',
-        price: 10,
-        image: 'assets/images/sleepingBag.jpg'),
-    Item(
-        name: 'Camp stove',
-        description: 'A portable gas stove',
-        price: 15,
-        image: 'assets/images/stove.jpg'),
-  ];
+                        final items = snapshot.data!;
 
-  final _newItemNameController = TextEditingController();
-  final _newItemDescriptionController = TextEditingController();
-  final _newItemPriceController = TextEditingController();
-  final _newItemImageController = TextEditingController();
-
-  void _addItem() {
-    final newItemName = _newItemNameController.text;
-    final newItemDescription = _newItemDescriptionController.text;
-    final newItemPrice = double.tryParse(_newItemPriceController.text) ?? 0.0;
-    final newItemImage = _newItemImageController.text;
-
-    if (newItemName.isNotEmpty) {
-      setState(() {
-        items.add(Item(
-          name: newItemName,
-          description: newItemDescription,
-          price: newItemPrice,
-          image: newItemImage,
-        ));
-      });
-
-      _newItemNameController.clear();
-      _newItemDescriptionController.clear();
-      _newItemPriceController.clear();
-      _newItemImageController.clear();
-    }
+                        return GridView.builder(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 1,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) => GestureDetector(
+                            onTap: () =>
+                                _showItemDetails(context, items[index]),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.network(
+                                        items[index]['image'],
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      children: [
+                                        Column(
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Column(
+                                                  children: [
+                                                    Text(
+                                                      items[index]['name'],
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '\$${items[index]['price']}',
+                                                      style: TextStyle(
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Container(
+                                                      padding: EdgeInsets.only(
+                                                        top: 0,
+                                                        left: 55,
+                                                      ),
+                                                      child: TextButton(
+                                                        onPressed: () {
+                                                          _rentItem(
+                                                              items[index]
+                                                                  ['id'],
+                                                              loggedInUser);
+                                                        },
+                                                        child: Text(
+                                                          'Rent',
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        style: TextButton
+                                                            .styleFrom(
+                                                          backgroundColor:
+                                                              Color(0xFF608478),
+                                                          shape:
+                                                              RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        10),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 0),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _deleteItem(int index) {
-    setState(() {
-      items.removeAt(index);
-    });
-  }
-
-  void _logout() {
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
-  void _showItemDetails(Item item) {
+  void _showItemDetails(BuildContext context, Map<String, dynamic> item) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -79,147 +224,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Account'),
-        backgroundColor: Color(0xFF608478),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Items:'),
-            SizedBox(height: defaultPadding * 0.3),
-            Expanded(
-              child: ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) => ListTile(
-                  title: Text(items[index].name),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => _deleteItem(index),
-                  ),
-                  leading: SizedBox(
-                    height: 50,
-                    width: 50,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        items[index].image,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  onTap: () => _showItemDetails(items[index]),
-                ),
-              ),
-            ),
-            TextField(
-              controller: _newItemNameController,
-              decoration: InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: _newItemDescriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-            ),
-            TextField(
-              controller: _newItemPriceController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Price'),
-            ),
-            TextField(
-              controller: _newItemImageController,
-              decoration: InputDecoration(labelText: 'Image URL'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _addItem,
-              child: Text('Add'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _logout,
-              child: Text('Log out'),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _rentItem(int id, String loggedInUser) async {
+    await _database.rentItem(id, loggedInUser);
+    // await _database.updateRentedStatus(id, true);
   }
 }
-
-class Item {
-  final String name;
-  final String description;
-  final double price;
-  final String image;
-
-  const Item({
-    required this.name,
-    required this.description,
-    required this.price,
-    required this.image,
-  });
-}
-
-class ItemDetailsPage extends StatelessWidget {
-  final Item item;
-
-  const ItemDetailsPage({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    Size size = MediaQuery.of(context).size;
-    return Scaffold(
-      appBar:
-          AppBar(title: Text(item.name), backgroundColor: Color(0xFF608478)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(height: 30),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                item.image,
-                height: size.height * 0.4,
-              ),
-            ),
-            SizedBox(height: defaultPadding),
-            Text(
-              item.description,
-              style: TextStyle(fontSize: 25),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Price: ',
-                  style: TextStyle(fontSize: 25),
-                ),
-                Text(
-                  '\$${item.price}',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-} 
-*/
-
-import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 
 class HomeScreen extends StatefulWidget {
   final String loggedInUser;
@@ -236,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _newItemDescriptionController = TextEditingController();
   final _newItemPriceController = TextEditingController();
   final _newItemImageController = TextEditingController();
+  bool _showAddForm = false;
 
   @override
   void initState() {
@@ -271,6 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _newItemDescriptionController.clear();
         _newItemPriceController.clear();
         _newItemImageController.clear();
+        _showAddForm = false;
       });
     } else {
       Fluttertoast.showToast(
@@ -329,21 +340,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account'),
+        title: Text('My Account'),
         backgroundColor: Color(0xFF608478),
-        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () => _logout(context),
+            icon: Icon(Icons.logout),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Items:'),
+            Text('My Own Items:'),
             SizedBox(height: defaultPadding * 0.3),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: _database.getItems(widget.loggedInUser),
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
                   if (!snapshot.hasData) {
                     return Center(child: CircularProgressIndicator());
                   }
@@ -377,65 +396,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            Column(
-              children: [
-                TextField(
-                  controller: _newItemNameController,
-                  decoration: InputDecoration(labelText: 'Name'),
-                ),
-                SizedBox(height: 7),
-                TextField(
-                  controller: _newItemDescriptionController,
-                  decoration: InputDecoration(labelText: 'Description'),
-                ),
-                SizedBox(height: 7),
-                TextField(
-                  controller: _newItemPriceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Price'),
-                ),
-                SizedBox(height: 7),
-                TextField(
-                  controller: _newItemImageController,
-                  decoration: InputDecoration(labelText: 'Image URL'),
-                ),
-                /*TextButton(
-                  onPressed: () async {
-                    try {
-                      final result = await FilePicker.platform.pickFiles(
-                        type: FileType.image,
-                      );
-                      if (result != null && result.count > 0) {
-                        setState(() {
-                          _newItemImageController.text =
-                              result.files.single.path!;
-                        });
-                      }
-                    } catch (e) {
-                      print('Error picking image: $e');
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      if (_newItemImageController.text.isNotEmpty)
-                        Image.file(File(_newItemImageController.text)),
-                      const SizedBox(height: 7),
-                      Text('Select Image'),
-                    ],
+            Offstage(
+              offstage: !_showAddForm,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _newItemNameController,
+                    decoration: InputDecoration(labelText: 'Name'),
                   ),
-                ),*/
-              ],
+                  SizedBox(height: 7),
+                  TextField(
+                    controller: _newItemDescriptionController,
+                    decoration: InputDecoration(labelText: 'Description'),
+                  ),
+                  SizedBox(height: 7),
+                  TextField(
+                    controller: _newItemPriceController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Price'),
+                  ),
+                  SizedBox(height: 7),
+                  TextField(
+                    controller: _newItemImageController,
+                    decoration: InputDecoration(labelText: 'Image URL'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => _addItem(widget.loggedInUser),
+                    child: Text('Done'),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => _addItem(widget.loggedInUser),
-              child: Text('Add'),
+              onPressed: () {
+                setState(() {
+                  _showAddForm = true;
+                });
+              },
+              child: Text('Add An Item'),
             ),
             const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () => _logout(context),
-              child: Text('Logout'),
-            ),
           ],
         ),
       ),

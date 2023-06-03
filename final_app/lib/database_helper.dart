@@ -17,17 +17,22 @@ class DBHelper {
   static const COL4 = "price";
   static const COL5 = "image";
 
+  static const TABLENAME3 = "Rented";
+  static const rented = "rented";
+
   static Future<Database> _openDB() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, DBNAME);
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(path, version: 2, onCreate: _onCreate);
   }
 
   static Future<void> _onCreate(Database db, int version) async {
     await db.execute(
         "CREATE TABLE $TABLENAME ($COL1 TEXT PRIMARY KEY, $COL2 TEXT)");
     await db.execute(
-        "CREATE TABLE $TABLENAME2 ($COL11 INTEGER PRIMARY KEY AUTOINCREMENT, $COL22 TEXT, $COL3 TEXT, $COL4 REAL, $COL5 TEXT, username TEXT)");
+        "CREATE TABLE $TABLENAME2 ($COL11 INTEGER PRIMARY KEY AUTOINCREMENT, $COL22 TEXT, $COL3 TEXT, $COL4 REAL, $COL5 TEXT, username TEXT, $rented BOOLEAN DEFAULT 0)");
+    await db.execute(
+        "CREATE TABLE $TABLENAME3 (itemID INTEGER PRIMARY KEY, rentername TEXT)");
   }
 
   Future<Database> get database async {
@@ -84,9 +89,44 @@ class DBHelper {
     final db = await database;
     var result = await db.query(
       TABLENAME2,
-      where: 'username = ?',
+      where: 'username = ? AND $rented = 0',
       whereArgs: [loggedInUser],
     );
     return result.toList();
   }
+
+  Future<List<Map<String, dynamic>>> getItems2() async {
+    final db = await database;
+    var result = await db.query(
+      TABLENAME2,
+      where: '$rented = 0',
+    );
+    return result.toList();
+  }
+
+  Future<void> rentItem(int itemId, String renterName) async {
+    final db = await _openDB();
+    await db.rawInsert(
+      "INSERT INTO $TABLENAME3 (itemID, rentername) "
+      "SELECT $COL11, '$renterName' FROM $TABLENAME2 "
+      "WHERE $COL11 = ?",
+      [itemId],
+    );
+    await db.update(
+      TABLENAME2,
+      {"rented": true},
+      where: "$COL11 = ?",
+      whereArgs: [itemId],
+    );
+  }
+
+  /*Future<void> updateRentedStatus(int id, bool rented) async {
+    final db = await _openDB();
+    await db.update(
+      TABLENAME2,
+      {"rented": rented},
+      where: "$COL11 = ?",
+      whereArgs: [id],
+    );
+  }*/
 }
