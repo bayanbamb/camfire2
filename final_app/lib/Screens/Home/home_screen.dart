@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:first_app/constants.dart';
 import 'package:first_app/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -11,12 +10,17 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-class EmptyScreen extends StatelessWidget {
+class EmptyScreen extends StatefulWidget {
   final String loggedInUser;
-  final _database = DBHelper();
+
   EmptyScreen({required this.loggedInUser});
 
   @override
+  _EmptyScreenState createState() => _EmptyScreenState();
+}
+
+class _EmptyScreenState extends State<EmptyScreen> {
+  final _database = DBHelper();
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -39,7 +43,7 @@ class EmptyScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              HomeScreen(loggedInUser: loggedInUser),
+                              HomeScreen(loggedInUser: widget.loggedInUser),
                         ),
                       );
                     },
@@ -165,7 +169,9 @@ class EmptyScreen extends StatelessWidget {
                                                           _rentItem(
                                                               items[index]
                                                                   ['id'],
-                                                              loggedInUser);
+                                                              widget
+                                                                  .loggedInUser,
+                                                              context);
                                                         },
                                                         child: Text(
                                                           'Rent',
@@ -224,9 +230,30 @@ class EmptyScreen extends StatelessWidget {
     );
   }
 
-  void _rentItem(int id, String loggedInUser) async {
-    await _database.rentItem(id, loggedInUser);
-    // await _database.updateRentedStatus(id, true);
+  void _rentItem(int id, String loggedInUser, BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text('Confirm Rent'),
+        content: Text('Are you sure you want to rent this item?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _database.rentItem(id, loggedInUser);
+              setState(() {});
+              Navigator.pop(dialogContext);
+            },
+            child: Text('Rent'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -334,8 +361,30 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _returnItem(int id) async {
-    await _database.returnItem(id);
+  void _returnItem(int id, BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text('Confirm Return'),
+        content: Text('Are you ready to return this item?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _database.returnItem(id);
+              setState(() {});
+              Navigator.pop(dialogContext);
+            },
+            child: Text('Return'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -356,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('My Own Items:'),
             SizedBox(height: defaultPadding * 0.3),
@@ -382,6 +431,48 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icon(Icons.delete),
                         onPressed: () =>
                             _deleteItem(items[index]['id'], context),
+                      ),
+                      leading: SizedBox(
+                        height: 50,
+                        width: 50,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            items[index]['image'],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      onTap: () => _showItemDetails(context, items[index]),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Text('Items I Have Rented:'),
+            SizedBox(height: defaultPadding * 0.3),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _database.getRentedItems(widget.loggedInUser),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final items = snapshot.data!;
+
+                  return ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) => ListTile(
+                      title: Text(items[index]['name']),
+                      subtitle: Text('\$${items[index]['price']} (Rented)'),
+                      trailing: TextButton(
+                        onPressed: () =>
+                            _returnItem(items[index]['id'], context),
+                        child: Text('Return'),
                       ),
                       leading: SizedBox(
                         height: 50,

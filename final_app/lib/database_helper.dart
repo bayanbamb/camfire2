@@ -18,7 +18,6 @@ class DBHelper {
   static const COL5 = "image";
 
   static const TABLENAME3 = "Rented";
-  static const rented = "rented";
 
   static Future<Database> _openDB() async {
     final dbPath = await getDatabasesPath();
@@ -30,7 +29,7 @@ class DBHelper {
     await db.execute(
         "CREATE TABLE $TABLENAME ($COL1 TEXT PRIMARY KEY, $COL2 TEXT)");
     await db.execute(
-        "CREATE TABLE $TABLENAME2 ($COL11 INTEGER PRIMARY KEY AUTOINCREMENT, $COL22 TEXT, $COL3 TEXT, $COL4 REAL, $COL5 TEXT, username TEXT, $rented BOOLEAN DEFAULT 0)");
+        "CREATE TABLE $TABLENAME2 ($COL11 INTEGER PRIMARY KEY AUTOINCREMENT, $COL22 TEXT, $COL3 TEXT, $COL4 REAL, $COL5 TEXT, username TEXT, rented INTEGER DEFAULT 0)");
     await db.execute(
         "CREATE TABLE $TABLENAME3 (itemID INTEGER PRIMARY KEY, rentername TEXT)");
   }
@@ -89,7 +88,7 @@ class DBHelper {
     final db = await database;
     var result = await db.query(
       TABLENAME2,
-      where: 'username = ? AND $rented = 0',
+      where: 'username = ?',
       whereArgs: [loggedInUser],
     );
     return result.toList();
@@ -99,7 +98,8 @@ class DBHelper {
     final db = await database;
     var result = await db.query(
       TABLENAME2,
-      where: '$rented = 0',
+      where: "rented = ?",
+      whereArgs: [false],
     );
     return result.toList();
   }
@@ -114,28 +114,34 @@ class DBHelper {
     );
     await db.update(
       TABLENAME2,
-      {"rented": true},
+      {"rented": 1},
       where: "$COL11 = ?",
       whereArgs: [itemId],
     );
   }
 
-  /*Future<void> updateRentedStatus(int id, bool rented) async {
-    final db = await _openDB();
-    await db.update(
-      TABLENAME2,
-      {"rented": rented},
-      where: "$COL11 = ?",
-      whereArgs: [id],
-    );
-  }*/
   Future<void> returnItem(int id) async {
-    final db = await database;
+    final db = await _openDB();
+    await db.delete(
+      TABLENAME3,
+      where: "itemID = ?",
+      whereArgs: [id],
+    );
     await db.update(
       TABLENAME2,
-      {"rented": true},
+      {"rented": 0},
       where: "$COL11 = ?",
       whereArgs: [id],
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getRentedItems(String user) async {
+    final db = await database;
+    var result = await db.query(
+      TABLENAME2,
+      where: "rented = ?",
+      whereArgs: [true],
+    );
+    return result.toList();
   }
 }
